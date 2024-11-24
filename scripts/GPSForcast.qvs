@@ -1,0 +1,22 @@
+// Obtenir la date actuelle
+LET vToday = Today();
+
+// Ajouter un jour à la date actuelle
+LET vTomorrow = Date(vToday, 1);
+LET vTomorrowvTomorrow = Date(vToday, 2);
+
+// Afficher les résultats dans une table
+[GPS Date]:
+LOAD
+	RecNo() 				As IdGPS,
+    $(vToday) 				AS DateToday,
+    $(vTomorrow) 			AS DateTomorrow,
+    $(vTomorrowvTomorrow) 	AS vTomorrowvTomorrow
+AUTOGENERATE 1;
+
+[GPS Forecast]:
+Load * inline [
+IdGPS, LatitudeForecast, LongitudeForecast
+1, 48.858844, 2.294351
+2, 48.8591134, 2.294351
+];

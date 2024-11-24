@@ -1,0 +1,65 @@
+[Ville]:
+Load Ville inline [
+Ville
+Paris
+Clermont-Ferrand
+Lille
+Lyon
+Bordeaux
+Quimper
+Caen
+Rouen
+Rennes
+Nantes
+Biarritz
+Perpignan
+Toulouse
+Nice
+Marseille
+Strasbourg
+Reims
+Bourges
+Limoges
+Auxerre
+Grenoble
+Besançon
+Tours
+Poitiers
+La Rochelle
+Montpellier,
+Cherbourg,
+Le Mans,
+Bastia,
+Ajaccio
+];
+
+// [Ville]:
+// Load Ville, text(Commune_CodeInsee) As Commune_CodeInsee inline [
+// Ville,Commune_CodeInsee
+// Paris,75101
+// Clermont-Ferrand,63113
+// Lille,59350
+// Lyon,69123
+// Bordeaux,33063
+// Brest,29019
+// Caen,14118
+// Rouen,76540 
+// Rennes,35238
+// Nantes,44109
+// Biarritz,64122
+// Perpignan,66136
+// Toulouse,31555
+// Nice,06088
+// Marseille,13201
+// Strasbourg,67482
+// Reims,51454
+// Bourges,18033
+// Limoges,87085
+// Auxerre,89024
+// Grenoble,38185
+// Besançon,25056
+// Tours,37261
+// Poitiers,86194
+// La Rochelle,17300
+// Montpellier,34172
+// ];

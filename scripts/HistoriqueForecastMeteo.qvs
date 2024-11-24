@@ -1,0 +1,139 @@
+//////////////////////////////////////////////////////////////////////////////////////
+// Traitement de création et de mise à jour du fichier d'historique des données meteo 
+//////////////////////////////////////////////////////////////////////////////////////
+
+
+// le fichier d'historique existe-t-il?
+Set vFileName='lib://Qlik Tips Tricks - Dev:DataFiles/meteo-france-forecast-historique.qvd';
+// s'il existe, la variable vListqvdexists vaut 0, sinon -1
+Let vListqvdexists=if(FileSize('$(vFileName)')>0,0,-1);
+
+LET v_Now_Start_Timestamp_Now =  text(Timestamp(now(), 'DD-MM-YY_hh:mm:ss'));
+
+Trace '$(vListqvdexists)';
+
+// si le fichier d'historique existe, on le met à jour en ajoutant la nouvelle version 
+// meteo-france-last-update.qvd qu'on va extraire à l'aide de la routine;  
+
+if $(vListqvdexists) = 0 then
+
+  	Let A = 'Update Forecast Meteo du jour';
+    
+    Trace 'Update data';
+	// appel de la routine pour créer le fichier QVD meteo-france-last-update.qvd
+  	Call ForeCast (A);
+    // ajout de ce fichier QVD au fichier QVD d'histotique existant
+    
+    Histometeo_tmp:
+    // on charge d'abord le fichier d'historique
+    // load * from [lib://Qlik Tips Tricks - Dev:DataFiles/meteo-france-historique.qvd] (qvd);
+    // puis on charge le fichier de mise à jour avec le tag de mise à jour
+    load
+        Ville																		As Ville,
+        F_region,
+        F_country,
+        F_lat,
+        F_lon,
+        F_tz_id,
+        F_localtime_epoch,
+        F_localtime,
+        F_F_localtime,
+        Timestamp(F_F_localtime) 													As F_T_localtime,
+        Date(Date#(F_localtime,'YYYY-MM-DD hh:mm'),'WWWW DD MMMM YYYY hh:mm')		As Date_format_forecast,
+        Date(Date#(F_localtime,'YYYY-MM-DD hh:mm'),'YYYY')							As Année_forecast,
+        Date(Date#(F_localtime,'YYYY-MM-DD hh:mm'),'MMMM')							As Mois_forecast,
+        Date(Date#(F_localtime,'YYYY-MM-DD hh:mm'),'DD')							As Jour_forecast,
+        Date(Date#(F_localtime,'YYYY-MM-DD hh:mm'),'WWWW')							As Semaine_forecast,        
+        F_last_updated,
+        F_temp_c,
+        F_is_day,
+        F_wind_degree,
+        F_pressure_mb,
+        F_humidity,
+        F_cloud,
+        F_text,
+        F_icon,
+    	'$(v_Now_Start_Timestamp_Now)' 												As M_DateTime_MAJ
+    FROM [lib://Qlik Tips Tricks - Dev:DataFiles/meteo-france-forecast-last-update.qvd]
+    (qvd);
+
+
+    Concatenate
+       
+//    Histometeo: 
+    LOAD
+        Ville																		As Ville,
+        F_region,				
+        F_country,				
+        F_lat,				
+        F_lon,				
+        F_tz_id,				
+        F_localtime_epoch,				
+        F_localtime																	As F_localtime,
+        F_F_localtime																As F_F_localtime,
+        Timestamp(F_localtime) 														As F_T_localtime,
+        Date(Date#(F_localtime,'YYYY-MM-DD hh:mm'),'WWWW DD MMMM YYYY hh:mm')		As Date_format_forecast,
+        F_last_updated,
+        F_temp_c,
+        F_is_day,
+        F_wind_degree,
+        F_pressure_mb,
+        F_humidity,
+        F_cloud,
+        F_text,
+        F_icon,
+        M_DateTime_MAJ
+    FROM [lib://Qlik Tips Tricks - Dev:DataFiles/meteo-france-forecast-historique.qvd]
+    (qvd);
+
+
+
+//     Load *
+//     Resident Histometeo_tmp;
+
+    // on stocke la dernière version du fichier d'historique dans le QVD meteo-france qui devient la nouvelle version du fichier d'historique
+	Store Histometeo_tmp into [lib://Qlik Tips Tricks - Dev:DataFiles/meteo-france-forecast-historique.qvd] (qvd);
+	// nettoyage
+    drop tables Histometeo_tmp;
+    
+// sinon, on va créer le fichier d'historique à partir de la nouvell version de données meteo
+else
+
+	Trace 'Add Meteo du jour';
+	
+	// appel de la routine pour créer le ficheir QVD meteo-france-last-update.qvd
+  	Call ForeCast (A) 
+    // ajout de ce fichier QVD au fichier QVD d'histotique existant
+   
+    Histometeo:
+    // on charge uniquement le fichier de mise à jour vu qu'il n'y a pas encore d'historique
+    load
+        L_name																		As Ville,
+        F_region,
+        F_country,
+        F_lat,
+        F_lon,
+        F_tz_id,
+        F_localtime_epoch,
+        F_localtime,
+        F_F_localtime,
+        Timestamp(F_F_localtime) 													As F_T_localtime,	
+        Date(Date#(F_localtime,'YYYY-MM-DD hh:mm'),'WWWW DD MMMM YYYY hh:mm')		As Date_format_forecast,
+        F_last_updated,
+        F_temp_c,
+        F_is_day,
+        F_wind_degree,
+        F_pressure_mb,
+        F_humidity,
+        F_cloud,
+        F_text,
+        F_icon,
+    	'$(v_Now_Start_Timestamp_Now)' 												As M_DateTime_MAJ
+    from [lib://Qlik Tips Tricks - Dev:DataFiles/meteo-france-forecast-last-update.qvd] (qvd);
+    // on stocke le tout dans le QVD meteo-france qui devient la nouvelle version du fichier d'historique
+	Store Histometeo into [lib://Qlik Tips Tricks - Dev:DataFiles/meteo-france-forecast-historique.qvd] (qvd);
+	// nettoyage
+    drop table Histometeo;
+
+End If;
+

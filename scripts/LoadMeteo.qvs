@@ -1,0 +1,68 @@
+// table finale pour reporting
+Meteo_historique:
+LOAD
+//         L_root						As M_root,
+//         L_current					As M_current,
+        Ville														As Ville,
+        L_region													As M_region,
+        // replace(L_country,'-','France')								As M_country,
+        If(Len(Trim(L_country)) > 0, L_country, 'France')			As M_country,
+        L_lat														As M_lat,
+        L_lon														As M_lon,
+        L_tz_id														As M_tz_id,
+        L_localtime_epoch											As M_localtime_epoch,
+        L_localtime													As M_localtime,
+        L_T_localtime												As M_T_localtime,
+        Date_format													As Date,
+        Année														As Année,
+        Mois														As Mois,
+        Jour														As Jour,
+        Semaine														As Semaine,
+        L_text														As M_text,
+        L_icon														As M_icon,
+        L_last_updated												As M_last_updated,
+        L_temp_c													As M_temp_c,
+        L_is_day													As M_is_day,
+        L_wind_degree												As M_wind_degree,
+        L_pressure_mb												As M_pressure_mb,
+        L_humidity													As M_humidity,
+       	L_cloud														As M_cloud,
+       	M_DateTime_MAJ												As L_DateTime_MAJ
+FROM [lib://Qlik Tips Tricks - Dev:DataFiles/meteo-france-historique.qvd] (qvd);
+
+NoConcatenate
+
+// table finale pour reporting
+Meteo_forecast_historique:
+LOAD
+//         F_root						As M_root,
+//         F_current					As M_current,
+        Ville														As Ville,
+        F_region													As F_region,
+        // replace(F_country,'-','France')								As M_country,
+        If(Len(Trim(F_country)) > 0, F_country, 'France')			As F_country,
+        F_lat														As F_lat,
+        F_lon														As F_lon,
+        F_tz_id														As F_tz_id,
+        F_localtime_epoch											As F_localtime_epoch,
+        F_localtime													As F_localtime,
+        F_F_localtime												As F_F_localtime,
+        F_T_localtime												As F_T_localtime,
+        Date_format_forecast										As Date_forecast,
+        Année_forecast												As Année_forecast,
+        Mois_forecast												As Mois_forecast,
+        Jour_forecast												As Jour_forecast,        
+        Semaine_forecast											As Semaine_forecast, 
+        F_text														As F_text,
+        F_icon														As F_icon,
+        F_last_updated												As F_last_updated,
+        F_temp_c													As F_temp_c,
+        F_is_day													As F_is_day,
+        F_wind_degree												As F_wind_degree,
+        F_pressure_mb												As F_pressure_mb,
+        F_humidity													As F_humidity,
+       	F_cloud														As F_cloud,
+       	M_DateTime_MAJ												As F_DateTime_MAJ
+FROM [lib://Qlik Tips Tricks - Dev:DataFiles/meteo-france-forecast-historique.qvd] (qvd);
+
+

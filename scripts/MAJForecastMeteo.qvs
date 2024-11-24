@@ -1,0 +1,210 @@
+/////////////////////////////////////////////////////////////////////////
+// routine pour extraction des données meteo à partir du connecteur REST 
+/////////////////////////////////////////////////////////////////////////
+
+Sub ForeCast(A)
+
+    // compteur de boucle qui va servir d'index dans la jointure finale des différentes tables extraites
+    let vBoucle=1;
+
+    // boucle pour chaque valeur de la table liste des villes
+    For each vVille in FieldValueList('Ville')
+
+    // connexion REST service meteo
+    LIB CONNECT TO 'Qlik Tips Tricks - Dev:REST_meteo_forecast';
+
+    RestConnectorMasterTable:
+    SQL SELECT 
+        "__KEY_root",
+        (SELECT 
+            "name",
+            "region",
+            "country",
+            "lat",
+            "lon",
+            "tz_id",
+            "localtime_epoch",
+            "localtime",
+            "__FK_location"
+        FROM "location" FK "__FK_location"),
+        (SELECT 
+            "last_updated",
+            "temp_c",
+            "is_day",
+            "wind_degree",
+            "pressure_mb",
+            "humidity",
+            "cloud",
+            "vis_km",
+            "uv",
+            "__KEY_current",
+            "__FK_current",
+            (SELECT 
+                "text",
+                "icon",
+                "__FK_condition"
+            FROM "condition" FK "__FK_condition")
+        FROM "current" PK "__KEY_current" FK "__FK_current"),
+        (SELECT 
+            "__KEY_forecast",
+            "__FK_forecast",
+            (SELECT 
+                "date",
+                "date_epoch",
+                "__KEY_forecastday",
+                "__FK_forecastday",
+                (SELECT 
+                    "maxtemp_c",
+                    "maxtemp_f",
+                    "mintemp_c",
+                    "mintemp_f",
+                    "avgtemp_c",
+                    "avgtemp_f",
+                    "maxwind_mph",
+                    "maxwind_kph",
+                    "totalprecip_mm",
+                    "totalprecip_in",
+                    "totalsnow_cm",
+                    "avgvis_km",
+                    "avgvis_miles",
+                    "avghumidity",
+                    "daily_will_it_rain",
+                    "daily_chance_of_rain",
+                    "daily_will_it_snow",
+                    "daily_chance_of_snow",
+                    "uv" AS "uv_u0",
+                    "__KEY_day",
+                    "__FK_day",
+                    (SELECT 
+                        "text" AS "text_u0",
+                        "icon" AS "icon_u0",
+                        "code",
+                        "__FK_condition_u0"
+                    FROM "condition" FK "__FK_condition_u0")
+                FROM "day" PK "__KEY_day" FK "__FK_day")
+            FROM "forecastday" PK "__KEY_forecastday" FK "__FK_forecastday")
+        FROM "forecast" PK "__KEY_forecast" FK "__FK_forecast")
+    FROM JSON (wrap on) "root" PK "__KEY_root"    
+    WITH CONNECTION (
+              Url "http://api.weatherapi.com/v1/forecast.json?key=4bf1a3f76fbf45b39c7121729241607&q=$(vVille)&days=3&aqi=no&alerts=no");
+
+    [location]:
+    LOAD	[name]							As Ville,
+        [region]							As F_region,
+        [country]							As F_country,
+        [lat]								As F_lat,
+        [lon]								As F_lon,
+        [tz_id]								As F_tz_id,
+        [localtime_epoch]					As F_localtime_epoch,
+        [localtime]							As F_localtime,
+        // index sur n° boucle
+        '$(vBoucle)' 						AS [__KEY_root]
+    RESIDENT RestConnectorMasterTable
+    WHERE NOT IsNull([__FK_location]);
+
+
+    [condition]:
+    LOAD	[text]						As F_text,
+            [icon]						As F_icon,
+        // index sur n° boucle pour lien avec table suivante
+        '$(vBoucle)' 					AS [__KEY_current]
+    RESIDENT RestConnectorMasterTable
+    WHERE NOT IsNull([__FK_condition]);
+
+
+    [current]:
+    LOAD [last_updated]						As F_last_updated,
+        [temp_c]							As F_temp_c,
+        [is_day]							As F_is_day,
+        [wind_degree]						As F_wind_degree,
+        [pressure_mb]						As F_pressure_mb,
+        [humidity]							As F_humidity,
+        [cloud]								As F_cloud,
+        [vis_km]							As F_vis_km,
+        [uv]								As F_uv,
+        // index sur n° boucle pour lien avec table précédente
+        '$(vBoucle)' as [__KEY_current],
+        // index sur n° boucle
+        '$(vBoucle)' AS [__KEY_root]        
+    RESIDENT RestConnectorMasterTable
+    WHERE NOT IsNull([__FK_current]);
+
+    [day]:
+    LOAD	[maxtemp_c]						As F_maxtemp_c,
+        [maxtemp_f]							As F_maxtemp_f,
+        [mintemp_c]							As F_mintemp_c,
+        [mintemp_f]							As F_mintemp_f,
+        [avgtemp_c]							As F_avgtemp_c,
+        [avgtemp_f]							As F_avgtemp_f,
+        [maxwind_mph]						As F_maxwind_mph,
+        [maxwind_kph]						As F_maxwind_kph,
+        [totalprecip_mm]					As F_totalprecip_mm,
+        [totalprecip_in]					As F_totalprecip_in,
+        [totalsnow_cm]						As F_totalsnow_cm,
+        [avgvis_km]							As F_avgvis_km,
+        [avgvis_miles]						As F_avgvis_miles,
+        [avghumidity]						As F_avghumidity,
+        [daily_will_it_rain]				As F_daily_will_it_rain,
+        [daily_chance_of_rain]				As F_daily_chance_of_rain,
+        [daily_will_it_snow]				As F_daily_wilF_it_snow,
+        [daily_chance_of_snow]				As F_daily_chance_of_snow,
+        [uv_u0] 							AS F_uv_u0,
+        [__KEY_day],
+        [__FK_day] AS [__KEY_forecastday]
+    RESIDENT RestConnectorMasterTable
+    WHERE NOT IsNull([__FK_day]);
+
+
+    [forecastday]:
+    LOAD	[date]							As F_F_localtime,
+        [date_epoch],
+        [__KEY_forecastday],
+        [__FK_forecastday] AS [__KEY_forecast]
+    RESIDENT RestConnectorMasterTable
+    WHERE NOT IsNull([__FK_forecastday]);
+
+
+//     [forecast]:
+//     LOAD	[__KEY_forecast],
+//         [__FK_forecast] AS [__KEY_root]
+//     RESIDENT RestConnectorMasterTable
+//     WHERE NOT IsNull([__FK_forecast]);
+
+
+//     [root]:
+//     LOAD	[__KEY_root]
+//     RESIDENT RestConnectorMasterTable
+//     WHERE NOT IsNull([__KEY_root]);
+
+
+    DROP TABLE RestConnectorMasterTable;
+    let vBoucle=$(vBoucle)+1;
+
+    // ville suivante
+    Next vVille;
+    //////////////////////
+    // fin boucle villes
+    //////////////////////
+
+    // table finale des résultats de la boucle
+    NoConcatenate
+    table_tmp1:
+    load * resident location;
+    join load *  resident current;
+    join load * resident condition;
+    join load * resident day;
+    join load * resident forecastday;
+
+    drop tables location, current, condition, day, forecastday;
+
+    // fichier QVD en sortie qui contient les résultats de la dernière boucle
+    // ce fichier sera ajouté au fichier QVD qui lui contiendra toute l'historique des extractions
+    Store [table_tmp1] into [lib://Qlik Tips Tricks - Dev:DataFiles/meteo-france-forecast-last-update.qvd] (qvd);  
+
+    // nettoyage
+    drop table table_tmp1;
+
+end Sub;
+/////////////////////////////////////////////////////////////////////////
+// FIN routine pour extraction des données meteo à partir du connecteur REST 
+/////////////////////////////////////////////////////////////////////////

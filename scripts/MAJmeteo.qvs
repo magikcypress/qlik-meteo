@@ -1,0 +1,120 @@
+/////////////////////////////////////////////////////////////////////////
+// routine pour extraction des données meteo à partir du connecteur REST 
+/////////////////////////////////////////////////////////////////////////
+
+Sub MiseAJour(A)
+
+    // compteur de boucle qui va servir d'index dans la jointure finale des différentes tables extraites
+    let vBoucle=1;
+
+    // boucle pour chaque valeur de la table liste des villes
+    For each vVille in FieldValueList('Ville')
+
+    // connexion REST service meteo
+    LIB CONNECT TO 'Qlik Tips Tricks - Dev:REST_Meteo';
+
+    // extraction des données du connecteur
+    RestConnectorMasterTable:
+    SQL SELECT 
+        "__KEY_root",
+        (SELECT 
+            "name",
+            "region",
+            "country",
+            "lat",
+            "lon",
+            "tz_id",
+            "localtime_epoch",
+            "localtime",
+            "__FK_location"
+        FROM "location" FK "__FK_location"),
+        (SELECT 
+            "last_updated",
+            "temp_c",
+            "is_day",
+            "wind_degree",
+            "pressure_mb",
+            "humidity",
+            "cloud",
+            "__KEY_current",
+            "__FK_current",
+            (SELECT 
+                "text",
+                "icon",
+                "__FK_condition"
+            FROM "condition" FK "__FK_condition")
+        FROM "current" PK "__KEY_current" FK "__FK_current")
+    FROM JSON (wrap on) "root" PK "__KEY_root"
+    WITH CONNECTION (
+              Url "http://api.weatherapi.com/v1/current.json?key=4bf1a3f76fbf45b39c7121729241607&q=$(vVille)&lang=fr&aqi=no");
+
+    // création des différentes tables contenant les données extraites du connecteur
+    [location]:
+    LOAD	[name]										As Ville,
+        [region]										As L_region,
+        [country]										As L_country,
+        [lat]											As L_lat,
+        [lon]											As L_lon,
+        [tz_id]											As L_tz_id,
+        [localtime_epoch]								As L_localtime_epoch,
+        [localtime]										As L_localtime,
+        // index sur n° boucle		
+        '$(vBoucle)' 									AS [__KEY_root]
+    RESIDENT RestConnectorMasterTable
+    WHERE NOT IsNull([__FK_location]);
+
+
+    [condition]:
+    LOAD	[text]						As L_text,
+            [icon]						As L_icon,
+        // index sur n° boucle pour lien avec table suivante
+        '$(vBoucle)' 					AS [__KEY_current]
+    RESIDENT RestConnectorMasterTable
+    WHERE NOT IsNull([__FK_condition]);
+
+
+    [current]:
+    LOAD	[last_updated]					As L_last_updated,
+        [temp_c]							As L_temp_c,
+        [is_day]							As L_is_day,
+        [wind_degree]						As L_wind_degree,
+        [pressure_mb]						As L_pressure_mb,
+        [humidity]							As L_humidity,
+        [cloud]								As L_cloud,
+        // index sur n° boucle pour lien avec table précédente
+        '$(vBoucle)' as [__KEY_current],
+        // index sur n° boucle
+        '$(vBoucle)' AS [__KEY_root]
+    RESIDENT RestConnectorMasterTable
+    WHERE NOT IsNull([__FK_current]);
+
+    // effacement de la table résultat de la connexion REST
+    DROP TABLE RestConnectorMasterTable;
+    let vBoucle=$(vBoucle)+1;
+
+    // ville suivante
+    Next vVille;
+    //////////////////////
+    // fin boucle villes
+    //////////////////////
+
+    // table finale des résultats de la boucle
+    NoConcatenate
+    table_tmp1:
+    load * resident location;
+    join load *  resident current;
+    join load * resident condition;
+
+    drop tables location, current, condition;
+
+    // fichier QVD en sortie qui contient les résultats de la dernière boucle
+    // ce fichier sera ajouté au fichier QVD qui lui contiendra toute l'historique des extractions
+    Store [table_tmp1] into [lib://Qlik Tips Tricks - Dev:DataFiles/meteo-france-last-update.qvd] (qvd);  
+
+    // nettoyage
+    drop table table_tmp1;
+
+end Sub;
+/////////////////////////////////////////////////////////////////////////
+// FIN routine pour extraction des données meteo à partir du connecteur REST 
+/////////////////////////////////////////////////////////////////////////

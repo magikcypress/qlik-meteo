@@ -1,0 +1,46 @@
+[Région]:
+LOAD
+    Region_Code,
+    Region,
+    Region_Area,
+    Region_Area_90%,
+    Region_Area_60%,
+    Region_Area_30%,
+    Region_Point
+FROM [lib://GeoAnalytics - Dev:DataFiles/Region.qvd]
+(qvd);
+
+[Département]:
+LOAD
+    Departement_Code,
+    Departement,
+    Departement_Area,
+    Departement_Area_90%,
+    Departement_Area_60%,
+    Departement_Area_30%,
+    Departement_Point,
+    Region_Code
+FROM [lib://GeoAnalytics - Dev:DataFiles/Departement.qvd]
+(qvd);
+
+[Commune]:
+LOAD
+    Commune_CodeInsee,
+    Commune,
+    Commune_Area,
+    Commune_Point,
+    Commune_Area_90%,
+    Commune_Area_60%,
+    Commune_Area_30%,
+    Departement_Code,
+    ZoneEmploi2010_Code,
+    BassinVie2012_Code,
+    Intercommunalité_Métropole_Code,
+    Canton_Code,
+    Arrondissement_Code
+FROM [lib://GeoAnalytics - Dev:DataFiles/Commune.qvd]
+(qvd)
+WHERE Exists(Commune_CodeInsee);
+
+
+
